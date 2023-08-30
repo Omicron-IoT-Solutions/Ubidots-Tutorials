@@ -20,7 +20,7 @@ Following this guide, the user will be able to connect the Kontrolog to Ubidots,
 + Ubidots account with the UbiFunctions add-on enabled
 
 ## Step-by-Step
-1. [Uplink function to post data to Ubidots](https://github.com/Omicron-IoT-Solutions/Ubidots-Tutorials/blob/main/Kontrolog.md#1-uplink-function-to-post-data-to-ubidots)   
+1. Uplink function to post data to Ubidots   
    1.1. Create UbiFunction for Uplink messages   
    1.2. Communications protocol for Uplink messages   
 2. Downlink function to get data from Ubidots   
