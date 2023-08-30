@@ -1,4 +1,4 @@
-# Connect your Kontrolog devices over LoRaWAN to Ubidots
+# Connect your Kontrolog devices over LoRaWAN or Sigfox to Ubidots
 *Learn how to connect your Kontrolog devices to Ubidots through The Things Network (TTN) or the Sigfox Backend, to remotely monitor sensor readings, output status, perform remote control, and send configuration messages to the device.*
 
 The Kontrolog device is a programmable controller for IoT (Internet of Things), designed for remote and real-time control and monitoring of different processes with high security and precision requirements. It can be connected to a touch screen HMI for local visualization and configuration. Adapted to your application, the device can be easily used after installation.
