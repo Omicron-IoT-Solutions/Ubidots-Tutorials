@@ -1,4 +1,4 @@
-# Connect your Kontrolog devices over LoRaWAN or Sigfox to Ubidots
+# Connect your Kontrolog devices over LoRaWAN™ or Sigfox to Ubidots
 *Learn how to connect your Kontrolog devices to Ubidots through The Things Network (TTN) or the Sigfox Backend, to remotely monitor sensor readings, output status, perform remote control, and send configuration messages to the device.*
 
 ![](https://github.com/Omicron-IoT-Solutions/Ubidots-Tutorials/blob/main/Kontrolog/Images/Img01.png)
