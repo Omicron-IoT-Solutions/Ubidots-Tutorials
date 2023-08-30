@@ -2,9 +2,9 @@
 *Learn how to connect your Kontrolog devices to Ubidots through TTN, to remotely monitor sensor readings, output status, perform remote control, and send configuration messages to the device.*
 
 ## Requirements
-+ Kontrolog
++ [Kontrolog](https://omicroniot.com/beta-9-2/)
 + The Things Network (TTN) account
-+ Ubidots account with the UbiFunctions add-on enabled
++ [Ubidots account](https://es.ubidots.com/signup) with the [UbiFunctions add-on enabled](https://help.ubidots.com/en/articles/2094690-plans-billing-how-to-add-ubifunctions-to-my-account)
 
 ## Step-by-Step
 1. Uplink function to post data to Ubidots   
