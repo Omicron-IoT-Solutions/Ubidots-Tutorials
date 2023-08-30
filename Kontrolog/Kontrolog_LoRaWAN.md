@@ -20,6 +20,4 @@
    3.3. Format for Uplink payload   
 4. Setting up the Kontrolog
 
-## 1. Uplink function to post data to Ubidots
-Below is the schematic representation of how information travels from a Kontrolog device to the Ubidots platform through the LoRaWAN™ network:
 
