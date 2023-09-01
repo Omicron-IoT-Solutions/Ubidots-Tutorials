@@ -1,0 +1,73 @@
+var $sendValue = $('#send-value'),
+    $value = $('#value'),
+    $device = $('#device'),
+    $notification = $('#notification'),
+    token = 'XXXX-XXXXXXXXXXXXXXXXXXXXX', //YOU MUST ENTER HERE THE USER'S OWN TOKEN
+    dev = '',
+    val = $value.val();
+
+var ubidots = new Ubidots();
+
+ubidots.on('selectedDevice', function (id) {
+  var url = 'https://industrial.api.ubidots.com/api/v1.6/datasources/' + id + '/';
+  var headers = {
+    'X-Auth-Token': token 
+  };
+  $.ajax({
+    method: 'GET',
+    url: url,
+    headers: headers,
+    success: function(data){
+      dev = data.label;
+      document.getElementById('description').innerText = "Selected device: " + data.name;
+    },
+    error: function() { 
+      //alert("Could not identify the selected device.");
+      document.getElementById('description').innerText = "Could not identify the selected device.";
+    }  
+  });
+   
+
+});
+
+function postValue(device, token, callback) {
+
+  var url = 'https://industrial.api.ubidots.com/api/v1.6/devices/' + dev + '/';
+  var headers = {
+    'Content-Type': 'application/json',
+    'X-Auth-Token': token 
+  };
+  
+  $notification.hide();
+
+  $.ajax({
+    data: JSON.stringify({
+      downlink : 
+      {
+      value: $value.val(),
+      context: {"command": $('#device').val()} 
+      }
+    }),
+    method: 'POST',
+    url: url,
+    headers: headers,
+    success: function (res) {
+  	  $notification.show();
+  	},
+    error: function() { 
+      alert("Failed to save the command."); 
+    }  
+  });
+}
+
+$sendValue.on('click', function () {
+  $notification.hide();
+  var confirmation = confirm("Do you confirm that you want to configure " + $device.val() + " with the value " + $value.val() + "?");
+  if (confirmation == true)
+    postValue($device.val(), token);  
+});
+
+
+
+
+
