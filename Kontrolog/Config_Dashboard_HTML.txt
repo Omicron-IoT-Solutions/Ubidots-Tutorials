@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+  </head>
+
+  <body>
+    <section class="hero is-link is-bold">
+        <div class="hero-body">
+          <div class="container">
+            <h1 class="title">
+                <b>Kontrolog Remote Configurator</b>
+            </h1>
+            <h2 class="subtitle">
+                Interface for remote configuration of devices.
+            </h2>
+          </div>
+        </div>
+    </section>
+
+    <section class="hero is-light">
+        <div class="hero-body">
+        <div class="container">  
+
+        <center>
+          <div class="content is-small" style="width: 55%;">
+            <b><p id="description" align="center"></p></b> 
+            <p align="center"> Remember that you can change the selected device in the top bar of the dashboard</p><br>
+          </div>
+        </center>
+
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label">Parameter to be configured:</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <input class="input is-danger" type="text" placeholder="Configuration command, for example: 01000a" id="device" oninput="format_input()" style="width: 80%;">
+              <script>
+              function format_input() {
+                var input = document.getElementById("device");
+                var help = document.getElementById("requirement");
+                input.value = input.value.toLowerCase();
+                input.value = input.value.replace(/ /g,'');
+                if(input.value.length == 6){
+                  input.setAttribute('class', 'input is-success');
+                  help.setAttribute('class', 'notification--container');
+                }
+                else{
+                  input.setAttribute('class', 'input is-danger');
+                  help.setAttribute('class', 'help is-danger');
+                }
+              }
+              </script>
+              <p class="help is-danger" id="requirement">Enter the code of a parameter (3 bytes HEX).</p>
+            </div>
+
+          </div>
+        </div> 
+
+        <br>
+
+        <center><hr/ style="width: 80%;"></center> <!--Dividing line-->
+        
+        <div class="field is-horizontal">
+          <div class="field-label is-normal">
+            <label class="label">Value to be configured:</label>
+          </div>
+          <div class="field-body">
+            <div class="field">
+              <input class="input is-danger" type="number" placeholder="For example: 15" id="value" style="width: 80%;" oninput="detect_value()">
+              <script>
+              function detect_value() {
+                var val = document.getElementById("value");
+                if(val.value.length > 0){
+                  val.setAttribute('class', 'input is-success');
+                }
+                else{
+                  val.setAttribute('class', 'input is-danger');
+                }
+              }
+              </script>
+            </div>
+          </div>
+        </div>  
+        <br>
+        <br>        
+
+        <center>
+        <button class="button is-link is-outlined is-medium" type="button" id="send-value">Save configuration</button>
+        <div id="notification" style="display: none;">
+          <br>
+          <p class="has-text-primary">Configuration saved!</p>
+        </div>
+        </center>
+
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          Remote device configurator, <strong>V. 1.2.</strong>/August 2023.
+        </p>
+      </div>
+    </footer>
+  </body>
+
+</html>
