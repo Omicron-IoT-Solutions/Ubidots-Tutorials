@@ -1,0 +1,247 @@
+var request = require('request-promise');
+async function main(args){
+
+    console.log(JSON.stringify(args));
+
+    var ubidots_token = 'XXXX-XXXXXXXXXXXXXXXXXXXXXXX'; //YOU MUST ENTER HERE THE USER'S OWN TOKEN
+    var device_label = args.device;
+    var aux_bit = '00';
+    var ack = args.ack; 
+
+    if (ack == 'true')
+    {
+        var utc = await get_utc(); //The timestamp is taken from the Ubidots server.
+       
+        //Checks that the downlink variable and the device are created, if not, creates them by publishing the command: '000000'. 
+        var variable_status = await ubidots_request_variable_status(ubidots_token, device_label);
+        var device_status = await ubidots_request_device_status(ubidots_token, device_label);
+        if(device_status >= 400){ //Device is not created on the platform
+            console.log(device_label);
+            console.log(" device requested downlink without being on platform");
+            var utchex = Math.round(utc/1000).toString(16);
+            var frame = '990001' + utchex + '00'; //Qué está extrayendo aquí
+            //Qeue downlink message on TTN app
+            await qeue_lora_downlink(ubidots_token, device_label, frame); //Qué está haciendo aquí?
+        }
+        else if ((variable_status >= 400)&&(device_status == 200)) { //Device is created on the platform, but downlink variable is not.
+            var response = await ubidots_request_variable_creation(ubidots_token, device_label);
+        } //Se crea la variable, publicando el comando '000000'
+        
+        //---------------------------------------------------------------------------------------------------------
+        
+        //Takes the downlink variable data
+        var downlink_data = await ubidots_get_variable_data(ubidots_token, device_label);
+        var url = downlink_data.url;
+        var description = downlink_data.description;
+            
+        //---------------------------------------------------------------------------------------------------------
+        
+        if (description == "")
+            var time = utc; //Timestamp of the Ubidots server.
+        else
+            var time = parseFloat(description);
+        
+        var values = await ubidots_get_values(ubidots_token, device_label, time);
+        
+        if (values.results.length > 1){
+            aux_bit= '01';
+            var val = values.results[values.results.length - 1].value;
+            var last_review = values.results[values.results.length - 2].timestamp;
+            var command = values.results[values.results.length - 1].context.command;
+            var frame = await prepare_frame(val, command, aux_bit, device_label);
+        }
+        else if (values.results.length == 1){
+            var val = values.results[0].value;
+            var last_review = utc;
+            var command = values.results[0].context.command;
+            var frame = await prepare_frame(val, command, aux_bit, device_label);
+        }
+        
+        else if (values.results.length == 0){ //If there is no Downlink message pending, the time is sent
+            var utchex = Math.round(utc/1000).toString(16);
+            var last_review = utc;
+            var frame = '160001' + utchex + '00';
+        }
+
+        console.log("size: " + values.results.length);
+        console.log("rev.: " + last_review);
+        console.log("frame: " + frame);
+
+        await update_description(url, last_review, ubidots_token);
+        //Qeue downlink message on TTN app
+        await qeue_lora_downlink(args.lora_downlink_token, args.lora_downlink_url, frame);
+    }
+
+    if (args.ack == 'rec'){ //Qué hace este caso?
+        var utc = await get_utc(); //Timestamp taken from the Ubidots server.
+        utc = Math.round(utc/1000.0);
+        var variable = args.variable;
+        var values = await ubidots_get_values(ubidots_token, variable);
+        var last_pub = Math.round(values.results[1].timestamp/1000.0);
+
+        var payload = {};
+        
+        if (Math.abs(last_pub-utc) > 60){
+            payload["downlink"] = {"value": 1, context: {"command": "32" + Math.round(last_pub/300.0).toString(16) + Math.round(utc/300.0).toString(16) + "00"}};
+            var response = await ubidots_request(ubidots_token, device_label, payload);
+            return response;
+        }
+    }
+}
+
+//AUX ROUTINES:---------------------------------------------------------------------------------------------------------
+
+async function prepare_frame(val, command, bit, label) {
+    if (command.length == 6)
+    {   
+        // Esto qué?
+        if ((parseInt(command.substring(0,2))<9)&&(parseInt(command.substring(0,2))>0)&&(((label.startsWith("kontrolog-"))&&(parseInt(command.substring(2,4))==0))||((label.startsWith("datalogxpro-"))&&(parseInt(command.substring(2,4))>0))||((label.startsWith("datalogiot-"))&&(parseInt(command.substring(2,4))>0)))&&(parseInt(command.substring(4,6))>4)&&(parseInt(command.substring(4,6))<8))
+            val*=10;
+        if (val < 0)
+            var final_value = (Array(8).join('f') + (4294967296 + val).toString(16)).slice(-8);
+        else
+            var final_value = (Array(8).join('0') + val.toString(16)).slice(-8);
+
+        var frame = command + final_value + bit;
+    }
+    else
+        var frame = '00000000000000' + bit;
+
+    console.log("frame: " + frame);
+    return frame;
+}
+
+async function qeue_lora_downlink(lora_downlink_token, lora_downlink_url, downlink_data) {
+        
+    buf = Buffer.from(downlink_data, 'hex');
+
+    var data = {};
+    data['downlinks'] = [{"frm_payload": buf.toString('base64'), "f_port":1,"priority":"NORMAL" }];
+    
+    var options = {
+        method: 'POST',
+        url: lora_downlink_url,
+        body: data,
+        json: true,
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + lora_downlink_token
+        }
+    };
+    console.log(JSON.stringify(options));
+    return await request.post(options);
+}
+
+async function ubidots_get_variable_data(ubidots_token, device_label) {
+    var options = {
+        url: 'https://industrial.api.ubidots.com/api/v1.6/devices/' + device_label + '/downlink/',
+        headers: {
+            "x-auth-token": ubidots_token
+        }, 
+        json: true
+    };
+
+    return await request.get(options);
+}
+
+async function ubidots_get_values(ubidots_token, device_label, time) {
+    var options = {
+        url: 'https://industrial.api.ubidots.com/api/v1.6/devices/' + device_label + '/downlink/values/?start=' + time,
+        headers: {
+            "x-auth-token": ubidots_token
+        }, 
+        json: true
+    };
+
+    return await request.get(options);
+}
+
+async function get_utc(ubidots_token, device_label, time) {
+    var options = {
+        url: 'https://industrial.api.ubidots.com/api/v1.6/utils/utcnow/'
+    };
+    return await request.get(options);
+}
+
+async function update_description (url, last_review, ubidots_token) {
+    var options = {
+        method: 'PUT',
+        url: url,
+        body: {"name" : "downlink", "description" : last_review},
+        json: true,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Auth-Token': ubidots_token
+        }
+    };
+
+    return await request.put(options);
+}
+
+async function ubidots_request_variable_creation(ubidots_token, device_label) {
+    var options = {
+        method: 'POST',
+        url: 'https://industrial.api.ubidots.com/api/v1.6/devices/' + device_label + "/downlink/values",
+        body: {value: 0, context: {"command" : "000000"}},
+        json: true,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Auth-Token': ubidots_token
+        }
+    };
+
+    return await request.post(options);
+}
+
+async function ubidots_request_variable_status(ubidots_token, device_label) {
+    var status_code;
+    var options = {
+        url: 'https://industrial.api.ubidots.com/api/v1.6/devices/' + device_label + '/downlink',
+        headers: {
+            "x-auth-token": ubidots_token
+        }, 
+        json: true,
+        resolveWithFullResponse: true
+    };
+    try {
+        var response = await request.get(options);
+        status_code = response.statusCode;
+    } catch(error) {
+        status_code = JSON.stringify(error.statusCode);
+    }
+
+    return status_code;
+}
+
+async function ubidots_request_device_status(ubidots_token, device_label) {
+    var status_code;
+    var options = {
+        url: 'https://industrial.api.ubidots.com/api/v1.6/devices/' + device_label,
+        headers: {
+            "X-Auth-Token": ubidots_token
+        }, 
+        resolveWithFullResponse: true
+    };
+    try {
+        var response = await request.get(options);
+        status_code = response.statusCode;
+    } catch(error) {
+        status_code = JSON.stringify(error.statusCode);
+    }
+
+    return status_code;
+}
+
+async function ubidots_request(token, label, body) {
+  var options = {
+    method: 'POST',
+    url: 'https://industrial.api.ubidots.com/api/v1.6/devices/' + label,
+    body: body,
+    json: true,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Auth-Token': token
+    }
+  };
+  return await request.post(options);
+}
