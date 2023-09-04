@@ -3,7 +3,7 @@ async function main(args){
 
     console.log(JSON.stringify(args));
 
-    var ubidots_token = 'XXXX-XXXXXXXXXXXXXXXXXXXXXXX'; //YOU MUST ENTER HERE THE USER'S OWN TOKEN
+    var ubidots_token = "XXXX-XXXXXXXXXX"; //YOU MUST ENTER HERE THE USER'S OWN TOKEN
     var device_label = args.device;
     var aux_bit = '00';
     var ack = args.ack; 
