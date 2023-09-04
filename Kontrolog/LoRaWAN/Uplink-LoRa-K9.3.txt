@@ -1,1 +1,186 @@
-#pending
+var request = require('request-promise');
+const axios = require('axios');
+async function main(input_payload) { 
+    
+  console.log("JSON TTS Input: ", JSON.stringify(input_payload));
+  console.log('-------------------------');
+
+  args = {};
+  
+  var input = JSON.parse(input_payload['body']); //Extracts all the data from de JSON file sent
+  var decoded_payload = input['uplink_message']['decoded_payload']; //Extracts the Uplink message (in hex code)
+  Object.assign(args, decoded_payload);    
+//---------------------------------------------------------------------------------------------    
+  var token = "XXXX-XXXXXXXXXX"; //YOU MUST ENTER HERE THE USER'S OWN TOKEN
+  var ID = input['end_device_ids']['device_id']; //The ID of the Kontrolog device
+
+    if (args.data!=null){
+        
+    var data = args.data.toString();
+    delete args['data'];
+    
+    console.log("Device: ", ID);
+    console.log("Data input: ", data);
+    
+    var msg_position = parseInt(data.substring(34), 16); //Position of the data stored in memory
+    data = data.substring(0, 34); 
+    
+    if(parseInt(data.substring(32), 16) == 1){ //Device available to receive Downlink messages
+      var downlink_request_body = { 'device' : "Kontrolog-" + ID, 'ack' : 'true', 'lora_downlink_token' : input_payload['headers']['x-downlink-apikey'], 'lora_downlink_url': input_payload['headers']['x-downlink-replace'] };
+      console.log("Request downlink with body: ");
+      console.log(JSON.stringify(downlink_request_body));
+      var downlink_request_reply = await downlink_request(downlink_request_body);
+    }
+    data = data.substring(0, 32);
+    
+    var time = 0;
+    if (parseInt(data.substring(24), 16) != 0){ //If the timestamp is included in the data sent, it is taken. 
+        time = parseInt(data.substring(24), 16) * 1000;
+    }
+    else time = await get_utc(); //If the timestamp is not included in the data sent, it is taken from the Ubidots server. 
+    data = data.substring(0, 24);
+    
+    if ((data.substring(0,1) == "F") || (data.substring(0,1) == "f")){ //If the message is a response code to a downlink command sent from the platform, the data frame starts with 0xF
+        var downlink_data = await ubidots_get_variable_data(token, ID); //In this case, the device's response to confirm that it received the Downlink message, is sending 0xF followed by the Downlink message it received.
+        var time = parseFloat(downlink_data.description)-1;
+        args["downlink"] = {"value": 1, "timestamp": time, context:{"command": data.substring(2,18) + "-OK"}}; //Prints in the context the Downlink message that was confirmed as received.
+    }    
+    else{
+        args['pos'] = {"value": msg_position, "timestamp": time};
+
+        // Message Code
+        var message = parseInt(data.substring(0, 1), 16);
+        
+        if (message<=13) { //Normal operation message or alarm messages
+        args['Message_code'] = {"value": message, "timestamp": time};
+
+        // Sensor 1
+        var reading =parseInt(data.substring(1, 4), 16)/10;
+        if(reading>=204.8)
+            reading-=409.6; 
+        args['IN1'] = {"value": reading, "timestamp": time};
+        
+        // Sensor 2
+        reading =  parseInt(data.substring(4, 7), 16)/10;
+        if(reading>=204.8)
+            reading-=409.6;
+        args['IN2'] = {"value": reading, "timestamp": time};
+        
+        // Sensor 3
+        reading = parseInt(data.substring(7, 10), 16)/10;
+        if(reading>=204.8)
+            reading-=409.6;
+        args['IN3'] = {"value": reading, "timestamp": time};
+
+        // Sensor 4
+        reading = parseInt(data.substring(10, 13), 16)/10;
+        if(reading>=204.8)
+            reading-=409.6;
+        args['IN4'] = {"value": reading, "timestamp": time};
+
+        // Sensor 5
+        reading = parseInt(data.substring(13, 16), 16)/10;
+        if(reading>=204.8)
+            reading-=409.6;
+        args['IN5'] = {"value": reading, "timestamp": time};
+
+        // Battery Voltage
+        reading = parseInt(data.substring(16, 18), 16)/10
+        args['VBat'] = {"value": reading, "timestamp": time};
+    
+        // AC Voltage
+        args['Vac'] = {"value": parseInt(data.substring(18,20), 16), "timestamp": time};
+        
+        // Current
+        reading= ((parseInt(data.substring(20,23), 16))&0xFFC)/40; // The bits that do not correspond to the variable are eliminated with &fffc, and it must be divided by 4 for the shifting and 10 for the scaling.
+        args['Iac'] = {"value": reading, "timestamp": time};
+    
+        // Status of the outputs and general alarm
+        var io = parseInt(data.substring(22,24), 16);
+        
+        var ALM = (io&0x01); //General alarm
+        args['ALM'] = {"value": ALM, "timestamp": time};
+        
+        var R1 = (io&0x02)/2; //Output 1
+        args['OUT1'] = {"value": R1, "timestamp": time};
+        
+        var R2 = (io&0x04)/4; //Output 2
+        args['OUT2'] = {"value": R2, "timestamp": time};
+        
+        var R3 = (io&0x08)/8; //Output 3
+        args['OUT3'] = {"value": R3, "timestamp": time};
+        
+        var R4 = (io&0x10)/16; //Output 4
+        args['OUT4'] = {"value": R4, "timestamp": time};
+        
+        var R5= (io&0x20)/32; //Output 5
+        args['OUT5'] = {"value": R5, "timestamp": time};
+        }
+    }
+  }
+
+    console.log("Final Data JSON: ", JSON.stringify(args));
+    
+    // Make POST request to Ubidots
+    var post_response = await ubidotsPost(token, ID, args);
+    return {
+        "status_code": 200, //Message successfully posted
+        "headers": {"Content-Type": "plain/text"},
+        "body": "[INFO] Successful request",
+    };
+}
+
+
+async function ubidotsPost(token, ID, data) { 
+
+    var options = {
+
+        method: 'POST',
+
+        url: 'https://industrial.api.ubidots.com/api/v1.6/devices/Kontrolog-' + ID + '?force=true&type=Kontrolog-',
+
+        body: data,
+        json: true,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Auth-Token': token
+        }
+    };
+    
+    return await request.post(options);
+}
+
+async function get_utc() {
+
+    var options = {
+        url: 'https://industrial.api.ubidots.com/api/v1.6/utils/utcnow/'
+    };
+    return await request.get(options);
+
+}
+
+async function downlink_request(body) {
+  console.log("Downlink request");
+  let config = {
+    method: 'post',
+    url: 'https://parse.ubidots.com/prv/username/ubifunction-name', //URL GENERATED BY THE DOWNLINK UBIFUNCTION IN THE FIELD "HTTPS ENDPOINT URL" 
+    data: body,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }
+  const response = await axios.request(config);
+  return response.data;
+}
+
+async function ubidots_get_variable_data(ubidots_token, device_label) {
+    var options = {
+        url: 'https://industrial.api.ubidots.com/api/v1.6/devices/Kontrolog-' + device_label + '/downlink/',
+        headers: {
+            "x-auth-token": ubidots_token
+        }, 
+        json: true
+    };
+
+    return await request.get(options);
+}
