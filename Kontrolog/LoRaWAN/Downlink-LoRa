@@ -19,13 +19,13 @@ async function main(args){
             console.log(device_label);
             console.log(" device requested downlink without being on platform");
             var utchex = Math.round(utc/1000).toString(16);
-            var frame = '990001' + utchex + '00'; //Qué está extrayendo aquí
+            var frame = '990001' + utchex + '00';
             //Qeue downlink message on TTN app
-            await qeue_lora_downlink(ubidots_token, device_label, frame); //Qué está haciendo aquí?
+            await qeue_lora_downlink(ubidots_token, device_label, frame);
         }
         else if ((variable_status >= 400)&&(device_status == 200)) { //Device is created on the platform, but downlink variable is not.
             var response = await ubidots_request_variable_creation(ubidots_token, device_label);
-        } //Se crea la variable, publicando el comando '000000'
+        }
         
         //---------------------------------------------------------------------------------------------------------
         
@@ -50,6 +50,7 @@ async function main(args){
             var command = values.results[values.results.length - 1].context.command;
             var frame = await prepare_frame(val, command, aux_bit, device_label);
         }
+
         else if (values.results.length == 1){
             var val = values.results[0].value;
             var last_review = utc;
@@ -72,7 +73,7 @@ async function main(args){
         await qeue_lora_downlink(args.lora_downlink_token, args.lora_downlink_url, frame);
     }
 
-    if (args.ack == 'rec'){ //Qué hace este caso?
+    if (args.ack == 'rec'){ 
         var utc = await get_utc(); //Timestamp taken from the Ubidots server.
         utc = Math.round(utc/1000.0);
         var variable = args.variable;
@@ -94,7 +95,6 @@ async function main(args){
 async function prepare_frame(val, command, bit, label) {
     if (command.length == 6)
     {   
-        // Esto qué?
         if ((parseInt(command.substring(0,2))<9)&&(parseInt(command.substring(0,2))>0)&&(((label.startsWith("kontrolog-"))&&(parseInt(command.substring(2,4))==0))||((label.startsWith("datalogxpro-"))&&(parseInt(command.substring(2,4))>0))||((label.startsWith("datalogiot-"))&&(parseInt(command.substring(2,4))>0)))&&(parseInt(command.substring(4,6))>4)&&(parseInt(command.substring(4,6))<8))
             val*=10;
         if (val < 0)
