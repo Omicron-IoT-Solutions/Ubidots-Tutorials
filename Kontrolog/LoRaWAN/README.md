@@ -20,6 +20,6 @@
    4.2. Communications protocol for Downlink messages   
 5. Send downlink messages with an Ubidots widget
 
-To access the guide, click on the following link: + [https://help.ubidots.com/en/articles/8365404-connect-your-kontrolog-devices-over-lorawan-to-ubidots#h_56555a9008](https://help.ubidots.com/en/articles/8365404-connect-your-kontrolog-devices-over-lorawan-to-ubidots#h_56555a9008)
+To access the guide, click on the following link: [https://help.ubidots.com/en/articles/8365404-connect-your-kontrolog-devices-over-lorawan-to-ubidots#h_56555a9008](https://help.ubidots.com/en/articles/8365404-connect-your-kontrolog-devices-over-lorawan-to-ubidots#h_56555a9008)
 
 
