@@ -2,7 +2,7 @@ var request = require('request-promise');
 const axios = require('axios');
 async function main(input_payload) { 
     
-  console.log("JSON TTS Input: ", JSON.stringify(input_payload));
+  console.log("JSON TTN Input: ", JSON.stringify(input_payload));
   console.log('-------------------------');
 
   args = {};
@@ -21,6 +21,9 @@ async function main(input_payload) {
     
     console.log("Device: ", ID);
     console.log("Data input: ", data);
+    
+    var out5_curr = parseInt(data.substring(36), 16)); //Current at output # 5
+    data = data.substring(0, 36); 
     
     var msg_position = parseInt(data.substring(34), 16); //Position of the data stored in memory
     data = data.substring(0, 34); 
@@ -47,7 +50,7 @@ async function main(input_payload) {
     }    
     else{
         args['pos'] = {"value": msg_position, "timestamp": time};
-
+        
         // Message Code
         var message = parseInt(data.substring(0, 1), 16);
         
@@ -113,8 +116,7 @@ async function main(input_payload) {
         var R4 = (io&0x10)/16; //Output 4
         args['OUT4'] = {"value": R4, "timestamp": time};
         
-        var R5= (io&0x20)/32; //Output 5
-        args['OUT5'] = {"value": R5, "timestamp": time};
+        args['OUT5'] = {"value": out5_curr, "timestamp": time};
         }
     }
   }
@@ -184,3 +186,6 @@ async function ubidots_get_variable_data(ubidots_token, device_label) {
 
     return await request.get(options);
 }
+
+ 
+ 
