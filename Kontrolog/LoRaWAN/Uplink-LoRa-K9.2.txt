@@ -2,7 +2,7 @@ var request = require('request-promise');
 const axios = require('axios');
 async function main(input_payload) { 
     
-  console.log("JSON TTS Input: ", JSON.stringify(input_payload));
+  console.log("JSON TTN Input: ", JSON.stringify(input_payload));
   console.log('-------------------------');
 
   args = {};
@@ -11,7 +11,7 @@ async function main(input_payload) {
   var decoded_payload = input['uplink_message']['decoded_payload']; //Extracts the Uplink message (in hex code)
   Object.assign(args, decoded_payload);    
 //---------------------------------------------------------------------------------------------    
-  var token = "XXXX-XXXXXXXXXX"; //YOU MUST ENTER HERE THE USER'S OWN TOKEN
+  var token = "XXXX-XXXXXXXXXX"; //YOU MUST ENTER HERE THE USER'S OWN TOKENN
   var ID = input['end_device_ids']['device_id']; //The ID of the Kontrolog device
 
     if (args.data!=null){
@@ -183,4 +183,5 @@ async function ubidots_get_variable_data(ubidots_token, device_label) {
     };
 
     return await request.get(options);
-}
+} 
+    
