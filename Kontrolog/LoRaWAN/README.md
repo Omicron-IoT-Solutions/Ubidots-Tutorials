@@ -1,3 +1,4 @@
+![Logo-Omicron-Vector](https://github.com/Omicron-IoT-Solutions/Datalog-X-PRO/assets/141452095/bc764263-2774-445c-a2a3-1181439de2bd)
 # Connect your Kontrolog devices over LoRaWAN™ to Ubidots
 *Learn how to connect your Kontrolog devices to Ubidots through TTN, to remotely monitor sensor readings, output status, perform remote control, and send configuration messages to the device.*
 
